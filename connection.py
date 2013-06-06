@@ -12,6 +12,7 @@ class Connection(object):
         self.timestamp = time.time()
         self.timeout = conn_key[4]
         self.s = self._createSocket(self.key)
+        self.closed=False
 
 
     def isTimeout(self):
@@ -24,8 +25,11 @@ class Connection(object):
         return self.s
 
     def close(self):
+        self.closed=True
         if self.s:
             self.s.close()
+    def isClosed(self):
+        return self.closed
 
     def _createSocket(self, conn_key):
         #print "create a new connection:", conn_key

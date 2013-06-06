@@ -10,20 +10,23 @@ from threading import *
 from bg_worker import bgworker
 from connection import Connection
 
+
 def _lockname(classname):
     return '_%s__%s' % (classname, 'lock')
+
 
 class LockProxy(object):
     def __init__(self, obj):
         self.__obj = obj
         self.__lock = RLock()
         # RLock because object methods may call own methods
+
     def __getattr__(self, name):
         def wrapped(*a, **k):
             with self.__lock:
                 getattr(self.__obj, name)(*a, **k)
-        return wrapped
 
+        return wrapped
 
 
 TIMEOUT = 3
@@ -59,6 +62,8 @@ class ConnectionPool(object):
 
     def releaseConnection(self, conn):
         if conn is None:
+            return
+        if conn.isClosed():
             return
         if conn.isTimeout():
             conn.close()
