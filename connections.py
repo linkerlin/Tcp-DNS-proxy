@@ -3,6 +3,9 @@
 # cody by linker.lin@me.com
 
 import socket
+import Queue
+import time
+
 from bg_worker import bgworker
 from connection import Connection
 
@@ -12,45 +15,34 @@ TIMEOUT = 3
 class ConnectionPool(object):
     def __init__(self, ttl=1):
         self.conn_pool = {}
-        self.inuse_conn = {}
+
 
     def getConnection(self, ip, port, socket_type=socket.SOCK_STREAM, socket_family=socket.AF_INET, timeout=TIMEOUT):
         #print "conn_pool",self.conn_pool
         conn_key = (socket_family, socket_type, ip, port, timeout)
-        if conn_key in self.conn_pool:
-            conn = self.conn_pool[conn_key]
-            if not conn.isTimeout():
-                del self.conn_pool[conn_key]
-                self.inuse_conn[conn] = conn_key
-                #print "conn_pool",self.conn_pool
-                return conn
-            elif conn.isTimeout():
-                #print conn, "timeout"
-                del self.conn_pool[conn_key]
-        conn = Connection(conn_key)
-        self.inuse_conn[conn] = conn_key
-        #print self.conn_pool
+        q = None
+        conn = None
+        # make sure the queue of conn_key is existed
+        if conn_key not in self.conn_pool:
+            q = Queue.Queue()
+            self.conn_pool[conn_key] = q
+        else:
+            q = self.conn_pool[conn_key]
+        while conn is None:
+            if q.empty():
+                def f():
+                    q.put(Connection(conn_key))
+
+                bgworker.post(lambda: f())
+                time.sleep(0.1)
+            else:
+                conn = q.get_nowait()
         return conn
 
     def releaseConnection(self, conn):
-        #print "inuse_conn",self.inuse_conn
-        if conn in self.inuse_conn:
-            conn_key = self.inuse_conn[conn]
-            if not conn.isTimeout():
-                self.conn_pool[conn_key] = conn
-            else:
-                def f():
-                    self.conn_pool[conn_key] = Connection(conn.getKey())
-                bgworker.post(lambda :f())
-                #print conn, "timeout"
-                pass
-            del self.inuse_conn[conn]
-        else:
-            print "Error", "release a unknown connection.", conn
-        #print "inuse_conn",self.inuse_conn
-
-
-
+        if conn is None:
+            return
+        conn.close()
 
 
 main_conn_pool = ConnectionPool(100)

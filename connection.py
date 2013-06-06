@@ -13,6 +13,8 @@ class Connection(object):
         self.timestamp = time.time()
         self.timeout = conn_key[4]
         self.s = self._createSocket(self.key)
+        if self.s is None:
+            raise Exception("Connect to "+str(self.key)+" failed.")
 
 
     def isTimeout(self):
@@ -24,6 +26,10 @@ class Connection(object):
     def getSokcet(self):
         return self.s
 
+    def close(self):
+        if self.s:
+            self.s.close()
+
     def _createSocket(self, conn_key):
         #print "create a new connection:", conn_key
         socket_family = conn_key[0]
@@ -33,7 +39,11 @@ class Connection(object):
         timeout = conn_key[4]
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(timeout) # set socket timeout
-        s.connect((ip, int(port)))
+        try:
+            s.connect((ip, int(port)))
+        except Exception as ex:
+            print "Connect to ",ip,"failed.",ex.message
+            return None
         return s
 
 if __name__ == "__main__":
