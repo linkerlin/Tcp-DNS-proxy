@@ -3,7 +3,6 @@
 # cody by linker.lin@me.com
 
 import socket
-from bg_worker import bgworker
 import time
 
 
@@ -13,8 +12,6 @@ class Connection(object):
         self.timestamp = time.time()
         self.timeout = conn_key[4]
         self.s = self._createSocket(self.key)
-        if self.s is None:
-            raise Exception("Connect to "+str(self.key)+" failed.")
 
 
     def isTimeout(self):
@@ -39,13 +36,10 @@ class Connection(object):
         timeout = conn_key[4]
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(timeout) # set socket timeout
-        try:
-            s.connect((ip, int(port)))
-        except Exception as ex:
-            print "Connect to ",ip,"failed.",ex.message
-            return None
+        s.connect((ip, int(port)))
         return s
 
+
 if __name__ == "__main__":
-    c = Connection((socket.AF_INET,socket.AF_INET,'8.8.8.8', 53,10))
+    c = Connection((socket.AF_INET, socket.AF_INET, '8.8.8.8', 53, 10))
     print c.isTimeout()
