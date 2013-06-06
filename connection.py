@@ -15,7 +15,7 @@ class Connection(object):
 
 
     def isTimeout(self):
-        return self.timestamp + self.timeout < time.time()
+        return (self.timestamp + self.timeout) < time.time()
 
     def getKey(self):
         return self.key

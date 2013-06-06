@@ -7,7 +7,7 @@ __author__ = 'linkerlin'
 
 import threading
 import Queue
-
+import time
 
 class BGWorker(threading.Thread):
     def __init__(self):
@@ -25,12 +25,13 @@ class BGWorker(threading.Thread):
                 if job:
                     job()
             except Exception as ex:
-                print ex.message
+                print "Error,job exception:",ex.message,type(ex)
+                time.sleep(0.05)
             else:
                 #print "job: ", job, " done"
                 pass
             finally:
-                pass
+                time.sleep(0.05)
 
 bgworker = BGWorker()
 bgworker.setDaemon(True)
