@@ -33,6 +33,7 @@ except:
     print "Install gevent will save a lot of CPU time"
 else:
     monkey.patch_all()
+import functools
 
 DHOSTS = ['156.154.70.1', # remote dns server address list
          '8.8.8.8',
