@@ -36,21 +36,26 @@ else:
 from caches import *
 
 DHOSTS = ['156.154.70.1', # remote dns server address list
-         '8.8.8.8',
+         #'8.8.8.8',
          '8.8.4.4',
-         '156.154.71.1',
+         #'156.154.71.1',
          '208.67.222.222',
-         '208.67.220.220',
+         #'208.67.220.220',
          #'198.153.192.1',
          #'198.153.194.1',
-         '74.207.247.4',
-         '209.244.0.3',
-         '8.26.56.26'
+         #'74.207.247.4',
+         #'209.244.0.3',
+         #'8.26.56.26'
          ]
 DPORT = 53                # default dns port 53
-TIMEOUT = 20              # set timeout 5 second
+TIMEOUT = 1               # set timeout 5 second
 VERBOSE = 0
 
+from servers import Servers
+from dnsserver import DNSServer
+ss=Servers()
+for host in DHOSTS:
+    ss.addDNSServer(DNSServer(host))
 
 #-------------------------------------------------------------
 # Hexdump Cool :)
@@ -89,22 +94,38 @@ def bytetodomain(s):
 #--------------------------------------------------
 # tcp dns request
 #---------------------------------------------------
-def QueryDNS(server, port, querydata):
+def QueryDNS(server, port, querydata, method = "tcp"):
     # length
     Buflen = struct.pack('!h', len(querydata))
     sendbuf = Buflen + querydata
     data=None
+    s=None
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(TIMEOUT) # set socket timeout
-        s.connect((server, int(port)))
-        s.send(sendbuf)
-        data = s.recv(2048)
+        if method == "tcp":
+            print "tcp"
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(TIMEOUT) # set socket timeout
+            s.connect((server, int(port)))
+            s.send(sendbuf)
+            data = s.recv(2048)
+        elif method == "udp":
+            print "udp"
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(TIMEOUT) # set socket timeout
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            #print type(querydata),(server, int(port))
+            s.sendto(querydata, (server, int(port)))
+            r,serv=s.recvfrom(1024)
+            #r,serv=s.recvfrom(1024)
+            data = struct.pack('!h', len(r))+r
     except Exception, e:
+        import traceback as tb
         print '[ERROR] QueryDNS: %s' %  e.message
+        tb.print_stack()
     finally:
         if s: s.close()
         return data
+
 
 
 #----------------------------------------------------
@@ -138,7 +159,8 @@ def transfer(querydata, addr, server):
     for i in range(9):
         choose = random.sample(xrange(len(DHOSTS)), 1)[0]
         DHOST = DHOSTS[choose]
-        response = QueryDNS(DHOST, DPORT, querydata)
+        #response = QueryDNS(DHOST, DPORT, querydata)
+        response =  ss.query(querydata)
         if response:
             # udp dns packet no length
             server.sendto(response[2:], addr)
